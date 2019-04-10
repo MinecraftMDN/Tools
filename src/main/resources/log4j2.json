@@ -1,0 +1,72 @@
+{
+    "configuration": {
+        "status": "error",
+        "name": "MMDN",
+        "appenders": {
+            "Console": {
+                "name": "STDOUT",
+                "PatternLayout": {
+                    "pattern": "%d [%t] %-5p- %m%n"
+                }
+            },
+            "File": [
+                {
+                    "name": "InfoFile",
+                    "fileName": "logs/info.log",
+                    "append": false,
+                    "PatternLayout": {
+                        "pattern": "%d [%t] %-5p- %m%n"
+                    }
+                },
+                {
+                    "name": "DebugFile",
+                    "fileName": "logs/debug.log",
+                    "append": false,
+                    "PatternLayout": {
+                        "pattern": "%d [%t] %-5p- %m%n"
+                    }
+                },
+                {
+                    "name": "TraceFile",
+                    "fileName": "logs/trace.log",
+                    "append": false,
+                    "PatternLayout": {
+                        "pattern": "%d [%t] %-5p- %m%n"
+                    }
+                }
+            ]
+        },
+        "loggers": {
+            "logger": [
+                {
+                    "name": "Main",
+                    "additivity": "false",
+                    "level": "trace",
+                    "AppenderRef": [
+                        {
+                            "ref": "STDOUT",
+                            "level": "info"
+                        },
+                        {
+                            "ref": "InfoFile",
+                            "level": "info"
+                        },
+                        {
+                            "ref": "DebugFile",
+                            "level": "debug"
+                        },
+                        {
+                            "ref": "TraceFile",
+                            "level": "trace"
+                        }
+                    ]
+                }
+            ],
+            "root": {
+                "AppenderRef": {
+                    "ref": "STDOUT"
+                }
+            }
+        }
+    }
+}

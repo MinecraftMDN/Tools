@@ -1,0 +1,31 @@
+plugins {
+    id "java"
+}
+
+group = "pw.brock.mmdn"
+archivesBaseName = "MinecraftMDN-Tools"
+version = "1.0.0"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    implementation "com.google.code.gson:gson:2.8.5"
+    implementation "com.google.guava:guava:27.1-jre"
+    implementation "com.google.http-client:google-http-client:1.28.0"
+    implementation "com.google.http-client:google-http-client-gson:1.28.0"
+    implementation "com.google.http-client:google-http-client-xml:1.28.0"
+    implementation "commons-io:commons-io:2.6"
+    implementation "commons-codec:commons-codec:1.12"
+    implementation "org.apache.logging.log4j:log4j-api:2.11.2"
+    implementation "org.apache.logging.log4j:log4j-core:2.11.2"
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.11.2"
+    implementation "com.fasterxml.jackson.core:jackson-core:2.7.4"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.7.4"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:2.7.4"
+}
