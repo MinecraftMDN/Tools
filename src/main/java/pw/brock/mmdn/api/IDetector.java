@@ -11,5 +11,5 @@ import pw.brock.mmdn.models.Version;
  */
 public interface IDetector {
 
-    List<Version> detect(Package pack, Map<String, String> data, List<String> ignoredVersions);
+    List<Version> detect(Package pack, Map<String, String> data, List<String> existingVersions, boolean updateExisting);
 }

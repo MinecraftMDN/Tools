@@ -21,10 +21,11 @@ import com.google.common.collect.Lists;
 /**
  * @author BrockWS
  */
+@SuppressWarnings("Duplicates")
 public class MavenDetector implements IDetector {
 
     @Override
-    public List<Version> detect(Package pack, Map<String, String> data, List<String> ignoredVersions) {
+    public List<Version> detect(Package pack, Map<String, String> data, List<String> existingVersions, boolean updateExisting) {
         Preconditions.checkArgument(data.containsKey("url"), "Missing url!");
         Preconditions.checkArgument(data.containsKey("id"), "Missing id!");
         List<Version> versions = Lists.newArrayList();
@@ -40,9 +41,11 @@ public class MavenDetector implements IDetector {
         urlParts.addAll(Arrays.asList(split));
         urlParts.add("maven-metadata.xml");
         MavenMeta meta = Downloader.getXml(Downloader.buildUrl(url, split[0], split[1], split[2], "maven-metadata.xml"), MavenMeta.class);
-        List<String> newVersions = meta.versions().stream()
-                .filter(s -> !ignoredVersions.contains(s))
-                .filter(s -> !s.endsWith("SNAPSHOT")).collect(Collectors.toList());
+        List<String> newVersions = meta.versions()
+                .stream()
+                .filter(s -> updateExisting || !existingVersions.contains(s))
+                .filter(s -> !s.endsWith("SNAPSHOT"))
+                .collect(Collectors.toList());
 
         newVersions.forEach(s -> {
             Log.debug("Need to get information of {}", s);
@@ -50,8 +53,9 @@ public class MavenDetector implements IDetector {
             urlParts.add(url);
             urlParts.addAll(Arrays.asList(split));
             urlParts.add(s);
-            urlParts.add(split[split.length-1] + "-" + s + ".pom");
-            MavenPom pom = Downloader.getXml(Downloader.buildUrl(urlParts.toArray(new String[0])), MavenPom.class);
+            urlParts.add(split[split.length - 1] + "-" + s);
+            String urlBase = Downloader.combineUrl(urlParts.toArray(new String[0]));
+            MavenPom pom = Downloader.getXml(Downloader.buildUrl(urlBase + ".pom"), MavenPom.class);
             if (pom == null) {
                 Log.error("Pom is null!");
                 return;
@@ -77,13 +81,13 @@ public class MavenDetector implements IDetector {
             // Artifacts
             // For now we assume the jar is in the maven. TODO: Check
             // Hashes
-            String md5 = Downloader.getString(Downloader.buildUrl(url, split[0], split[1], split[2], s, split[2] + "-" + s + ".jar.md5"));
-            String sha1 = Downloader.getString(Downloader.buildUrl(url, split[0], split[1], split[2], s, split[2] + "-" + s + ".jar.sha1"));
+            String md5 = Downloader.getString(Downloader.buildUrl(urlBase + ".jar.md5"));
+            String sha1 = Downloader.getString(Downloader.buildUrl(urlBase + ".jar.sha1"));
             if (md5.isEmpty())
                 throw new NullPointerException("MD5 is empty!");
             if (sha1.isEmpty())
                 throw new NullPointerException("SHA1 is empty!");
-            v.artifacts.add(new Version.Artifact("direct", Downloader.combineUrl(data.get("url"), split[0], split[1], split[2], s, split[2] + "-" + s + ".jar")));
+            v.artifacts.add(new Version.Artifact("direct", Downloader.combineUrl(urlBase + ".jar")));
             v.hashes.put("md5", md5);
             v.hashes.put("sha1", sha1);
             versions.add(v);

@@ -11,6 +11,8 @@ import java.util.Map;
 public class MLVersion extends Version {
 
     public List<Library> libraries = new ArrayList<>();
+    public Map<String, String> mainClass = new HashMap<>();
+    public Map<String, List<String>> tweakers = new HashMap<>();
 
     public static class Library {
         public String id;
@@ -20,6 +22,8 @@ public class MLVersion extends Version {
 
         public Library() {
         }
+
+        public String id(){return this.id;}
 
         @Override
         public String toString() {

@@ -115,14 +115,14 @@ public class Downloader {
                 base += extra.substring(1);
             else
                 base += extra;
-            return (base.endsWith("/") ? base.substring(0, base.length() - 1) : base).replace("+", "%2B");
+            return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         }).orElseThrow(RuntimeException::new);
     }
 
     public static GenericUrl buildUrl(String... paths) {
-        AtomicReference<String> url = new AtomicReference<>(Downloader.combineUrl(paths));
+        AtomicReference<String> url = new AtomicReference<>(paths.length == 1 ? paths[0] : Downloader.combineUrl(paths));
         Globals.MIRRORS.forEach((k, v) -> url.set(url.get().replace(k, v)));
-        return new GenericUrl(url.get());
+        return new GenericUrl(url.get().replace("+", "%2B"));
     }
 
     private static void addDefaultHeaders(HttpRequest request) {

@@ -17,7 +17,7 @@ public class Globals {
     // Versions Repository
     // *************************************
     public static String VERSIONS_DIR = "Versions";
-    
+
     // *************************************
     // Meta Repository (Compiled)
     // *************************************
@@ -32,7 +32,10 @@ public class Globals {
     // Misc
     // *************************************
     public static String PROJECTS = "";
+    // Forgot about existing versions
     public static boolean FRESH = false;
+    // Merge with existing versions
+    public static boolean UPDATE = false;
     public static Map<String, String> MIRRORS = new HashMap<>();
 
 }

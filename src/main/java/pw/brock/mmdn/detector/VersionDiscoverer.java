@@ -50,8 +50,8 @@ public class VersionDiscoverer implements Runnable {
         Preconditions.checkArgument(pack.specVersion() == 0, "Unsupported spec version " + pack.specVersion());
         Preconditions.checkArgument(!pack.detectors().isEmpty(), "Package " + this.id + " does not have any detectors!");
 
-        List<Version> existingVersions = Globals.FRESH ? new ArrayList<>() : this.readExisting(pack.type());
-        Log.info("{} existing versions", existingVersions.size());
+        List<Version> versions = Globals.FRESH ? new ArrayList<>() : this.readExisting(pack.type());
+        Log.info("{} existing versions", versions.size());
 
         pack.detectors().forEach(detect -> {
             String type = detect.type().toLowerCase();
@@ -60,12 +60,12 @@ public class VersionDiscoverer implements Runnable {
             IDetector detector = DetectorRegistry.getDetector(type);
             if (detector == null)
                 throw new RuntimeException("Unknown detector " + type);
-            List<Version> found = detector.detect(pack, data, existingVersions.stream().map(version -> version.id).collect(Collectors.toList()));
+            List<Version> found = detector.detect(pack, data, versions.stream().map(version -> version.id).collect(Collectors.toList()), Globals.UPDATE);
             if (found == null)
                 throw new NullPointerException("Detector " + detector.getClass() + " returned null!");
-            this.mergeVersions(found, existingVersions);
+            this.mergeVersions(found, versions);
         });
-        if (existingVersions.isEmpty()) {
+        if (versions.isEmpty()) {
             Log.info("No files found!");
             return;
         }
@@ -74,7 +74,7 @@ public class VersionDiscoverer implements Runnable {
             try {
                 FileUtils.deleteDirectory(dir);
             } catch (IOException e) {
-                Log.error("Failed to deleted {}", dir.getAbsolutePath());
+                Log.error("Failed to delete {}", dir.getAbsolutePath());
                 e.printStackTrace();
                 return;
             }
@@ -83,11 +83,11 @@ public class VersionDiscoverer implements Runnable {
             Log.error("Failed to create {}", dir.getAbsolutePath());
             return;
         }
-        existingVersions.forEach(version -> {
+        versions.forEach(version -> {
             Log.trace("{}", version.toString());
         });
-        /*
-        existingVersions.forEach(version -> {
+
+        versions.forEach(version -> {
             Log.info("Got version info {}", version);
             try {
                 Util.toJsonFile(FileUtil.file(Globals.VERSIONS_DIR, "active", this.id, version.id + ".json"), version);
@@ -95,14 +95,16 @@ public class VersionDiscoverer implements Runnable {
                 Log.error("Failed to save json file!");
                 e.printStackTrace();
             }
-        });*/
+        });
     }
 
     private void mergeVersions(List<Version> from, List<Version> to) {
         Log.info("Merging versions!");
         Collection<Version> list = Stream.concat(to.stream(), from.stream()).collect(Collectors.toMap(Version::id, Function.identity(), (o1, o2) -> {
             // TODO: Merge data
-
+            // Remove any duplicate relationship data and only add new found relationships
+            o2.relationships.removeIf(relationship -> o1.relationships.stream().map(r -> r.id).anyMatch(s -> relationship.id.equalsIgnoreCase(s)));
+            o1.relationships.addAll(o2.relationships);
             return o1;
         })).values();
         to.clear();
