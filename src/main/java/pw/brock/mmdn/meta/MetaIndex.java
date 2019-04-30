@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * @author BrockWS
  */
-public class MetaIndex {
+class MetaIndex {
 
     private int formatVersion;
     private List<Package> packages;

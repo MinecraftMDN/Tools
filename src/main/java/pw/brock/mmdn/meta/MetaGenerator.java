@@ -17,7 +17,6 @@ import com.google.common.collect.Maps;
 /**
  * @author BrockWS
  */
-@SuppressWarnings("WeakerAccess")
 public class MetaGenerator implements Runnable {
 
     private Map<String, SourceType> sources;
@@ -37,10 +36,8 @@ public class MetaGenerator implements Runnable {
         Preconditions.checkNotNull(path);
         Preconditions.checkArgument(!path.isEmpty());
         File file = FileUtil.file(path);
-        if (type == SourceType.PACKAGES_ACTIVE || type == SourceType.PACKAGES_FROZEN || type == SourceType.VERSIONS_ACTIVE || type == SourceType.VERSIONS_FROZEN)
-            Preconditions.checkArgument(file.isDirectory(), "Path " + file.getAbsolutePath() + " is not a directory! " + type);
-        else
-            Preconditions.checkArgument(file.isFile(), "Path " + file.getAbsolutePath() + " is not a file! " + type);
+        Preconditions.checkArgument(file.isDirectory(), "Path " + file.getAbsolutePath() + " is not a directory! " + type);
+
         this.sources.put(file.getAbsolutePath(), type);
         return this;
     }
@@ -73,7 +70,7 @@ public class MetaGenerator implements Runnable {
         List<MetaIndex.Package> verifiedPackages = new ArrayList<>();
         index.packages().forEach(pack -> {
             if (!packages.containsKey(pack.id())) {
-                Log.info("Package {} was removed!", pack.id());
+                Log.warn("Package {} was removed!", pack.id());
                 return;
             }
             File file = packages.get(pack.id());
@@ -85,10 +82,6 @@ public class MetaGenerator implements Runnable {
             // Remove them since we verified it
             packages.remove(pack.id());
         });
-        if (packages.isEmpty()) {
-            Log.info("Verified all packages!");
-            return;
-        }
         index.packages().removeIf(pack -> !verifiedPackages.contains(pack));
         Log.info("{} packages(s) to be added/changed", packages.size());
         packages.forEach((s, file) -> {

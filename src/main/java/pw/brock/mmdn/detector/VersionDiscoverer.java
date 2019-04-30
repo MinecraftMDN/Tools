@@ -11,7 +11,7 @@ import pw.brock.mmdn.Globals;
 import pw.brock.mmdn.api.DetectorRegistry;
 import pw.brock.mmdn.api.IDetector;
 import pw.brock.mmdn.models.MLVersion;
-import pw.brock.mmdn.models.Package;
+import pw.brock.mmdn.models.UpstreamPackage;
 import pw.brock.mmdn.models.Version;
 import pw.brock.mmdn.util.FileUtil;
 import pw.brock.mmdn.util.Log;
@@ -36,18 +36,17 @@ public class VersionDiscoverer implements Runnable {
     @Override
     public void run() {
         Log.info("Starting Version Discoverer, discovering versions for {}", this.id);
-        Preconditions.checkArgument(FileUtil.isDir(Globals.PACKAGES_DIR), "Packages dir does not exist! " + Globals.PACKAGES_DIR);
-        Preconditions.checkArgument(FileUtil.isDir(Globals.VERSIONS_DIR), "Versions dir does not exist! " + Globals.VERSIONS_DIR);
-        Package pack;
+        Preconditions.checkArgument(FileUtil.isDir(Globals.UPSTREAM_DIR), "Upstream dir does not exist! " + Globals.UPSTREAM_DIR);
+        UpstreamPackage pack;
         try {
-            pack = Util.fromJsonFile(FileUtil.file(Globals.PACKAGES_DIR, "active", this.id + ".json"), Package.class);
+            pack = Util.fromJsonFile(FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id, "package.json"), UpstreamPackage.class);
         } catch (IOException e) {
             Log.error("Failed to read package file!");
             e.printStackTrace();
             return;
         }
         Preconditions.checkNotNull(pack, "Failed to read package file!");
-        Preconditions.checkArgument(pack.specVersion() == 0, "Unsupported spec version " + pack.specVersion());
+        Preconditions.checkArgument(pack.formatVersion() == 0, "Unsupported spec version " + pack.formatVersion());
         Preconditions.checkArgument(!pack.detectors().isEmpty(), "Package " + this.id + " does not have any detectors!");
 
         List<Version> versions = Globals.FRESH ? new ArrayList<>() : this.readExisting(pack.type());
@@ -69,8 +68,8 @@ public class VersionDiscoverer implements Runnable {
             Log.info("No files found!");
             return;
         }
-        File dir = FileUtil.file(Globals.VERSIONS_DIR, "active", this.id);
-        if (Globals.FRESH) { // Deleted everything inside of the folder
+        File dir = FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id);
+        /*if (Globals.FRESH) { // Deleted everything inside of the folder
             try {
                 FileUtils.deleteDirectory(dir);
             } catch (IOException e) {
@@ -78,7 +77,7 @@ public class VersionDiscoverer implements Runnable {
                 e.printStackTrace();
                 return;
             }
-        }
+        }*/
         if (!dir.exists() && !dir.mkdirs()) {
             Log.error("Failed to create {}", dir.getAbsolutePath());
             return;
@@ -88,9 +87,9 @@ public class VersionDiscoverer implements Runnable {
         });
 
         versions.forEach(version -> {
-            Log.info("Got version info {}", version);
+            Log.trace("Got version info {}", version);
             try {
-                Util.toJsonFile(FileUtil.file(Globals.VERSIONS_DIR, "active", this.id, version.id + ".json"), version);
+                Util.toJsonFile(FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id, version.id + ".json"), version);
             } catch (IOException e) {
                 Log.error("Failed to save json file!");
                 e.printStackTrace();
@@ -112,10 +111,10 @@ public class VersionDiscoverer implements Runnable {
     }
 
     private List<Version> readExisting(String type) {
-        File dir = FileUtil.file(Globals.VERSIONS_DIR, "active", this.id);
+        File dir = FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id);
         if (!dir.exists())
             return new ArrayList<>();
-        List<File> files = FileUtil.getFiles(dir);
+        List<File> files = FileUtil.getFiles(dir, file -> !file.getName().equalsIgnoreCase("package.json"));
         return files.stream().map(file -> {
             try {
                 Class<? extends Version> clazz = type.equalsIgnoreCase("modloader") ? MLVersion.class : Version.class;

@@ -14,9 +14,9 @@ import pw.brock.mmdn.util.Log;
  * @author BrockWS
  */
 @SuppressWarnings({"FieldCanBeLocal", "unused", "Duplicates", "WeakerAccess"})
-public class Package {
+public class Package implements IDataModel {
 
-    private int specVersion = -1;
+    private int formatVersion = -1;
     private String type = "mod";
     private String id = "";
     private String name = "";
@@ -24,7 +24,6 @@ public class Package {
     private Object licenses = Collections.emptyList();
     private List<String> authors = Collections.emptyList();
     private List<ProjectLink> projectLinks = Collections.emptyList();
-    private List<Detector> detectors = Collections.emptyList();
 
     public class ProjectLink {
         private String type;
@@ -39,21 +38,8 @@ public class Package {
         }
     }
 
-    public class Detector {
-        private String type;
-        private Map<String, String> data = new HashMap<>();
-
-        public String type() {
-            return this.type;
-        }
-
-        public Map<String, String> data() {
-            return this.data;
-        }
-    }
-
-    public int specVersion() {
-        return this.specVersion;
+    public int formatVersion() {
+        return this.formatVersion;
     }
 
     public String type() {
@@ -94,15 +80,25 @@ public class Package {
         return this.projectLinks;
     }
 
-    public List<Detector> detectors() {
-        return this.detectors;
+    @Override
+    public void prepareForMinify() {
+        if (this.name != null && this.name.isEmpty())
+            this.name = null;
+        if (this.description != null && this.description.isEmpty())
+            this.description = null;
+        if (this.licenses != null && this.licenses().isEmpty())
+            this.licenses = null;
+        if (this.authors != null && this.authors.isEmpty())
+            this.authors = null;
+        if (this.projectLinks != null && this.projectLinks.isEmpty())
+            this.projectLinks = null;
     }
 
     public boolean verify() {
         // Probably could just use a json schema instead
         AtomicBoolean valid = new AtomicBoolean(true);
-        if (this.specVersion < 0) {
-            Log.error("specVersion is < 0! {}", this.specVersion);
+        if (this.formatVersion < 0) {
+            Log.error("formatVersion is < 0! {}", this.formatVersion);
             valid.set(false);
         }
         if (this.id.isEmpty()) {
@@ -130,22 +126,6 @@ public class Package {
                 Log.error("project link url string is empty!");
                 valid.set(false);
             }
-        }
-        for (Detector detector : this.detectors) {
-            if (detector.type.isEmpty()) {
-                Log.error("detector type string is empty!");
-                valid.set(false);
-            }
-            detector.data.forEach((k, v) -> {
-                if (k.isEmpty()) {
-                    Log.error("detector key is empty!");
-                    valid.set(false);
-                }
-                if (v.isEmpty()) {
-                    Log.error("detector value is empty!");
-                    valid.set(false);
-                }
-            });
         }
 
         return valid.get();

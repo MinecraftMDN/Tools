@@ -7,6 +7,7 @@ import pw.brock.mmdn.detector.CurseForgeDetector;
 import pw.brock.mmdn.detector.MavenDetector;
 import pw.brock.mmdn.detector.VersionDiscoverer;
 import pw.brock.mmdn.detector.special.FabricLoaderDetector;
+import pw.brock.mmdn.detector.special.FabricMetaDetector;
 import pw.brock.mmdn.detector.special.YarnDetector;
 import pw.brock.mmdn.meta.MetaGenerator;
 import pw.brock.mmdn.meta.SourceType;
@@ -23,8 +24,7 @@ public class Main {
         boolean meta = Main.parseArg(args, "meta", false);
         boolean index = Main.parseArg(args, "index", false);
 
-        Globals.PACKAGES_DIR = Main.parseArg(args, "packagesDir", Globals.PACKAGES_DIR);
-        Globals.VERSIONS_DIR = Main.parseArg(args, "versionsDir", Globals.VERSIONS_DIR);
+        Globals.UPSTREAM_DIR = Main.parseArg(args, "upstreamDir", Globals.UPSTREAM_DIR);
         Globals.META_DIR = Main.parseArg(args, "metaDir", Globals.META_DIR);
         Globals.PROJECTS = Main.parseArg(args, "projects", Globals.PROJECTS);
         Globals.FRESH = Main.parseArg(args, "fresh", Globals.FRESH);
@@ -39,6 +39,7 @@ public class Main {
         DetectorRegistry.register("curseforge", new CurseForgeDetector());
         DetectorRegistry.register("fabricloader", new FabricLoaderDetector());
         DetectorRegistry.register("yarn", new YarnDetector());
+        DetectorRegistry.register("fabricmeta", new FabricMetaDetector());
 
         if (index) {
             if (Globals.FRESH) {
@@ -58,10 +59,8 @@ public class Main {
             Log.error("Missing --projects");
         } else if (meta) {
             new MetaGenerator("Meta")
-                    .addSource(SourceType.PACKAGES_ACTIVE, "Mods/active")
-                    .addSource(SourceType.PACKAGES_FROZEN, "Mods/frozen")
-                    .addSource(SourceType.VERSIONS_ACTIVE, "Versions/active")
-                    .addSource(SourceType.VERSIONS_FROZEN, "Versions/frozen")
+                    .addSource(SourceType.ACTIVE, "Upstream/active")
+                    .addSource(SourceType.FROZEN, "Upstream/frozen")
                     .run();
         } else {
             Log.error("Specify an argument or something...");

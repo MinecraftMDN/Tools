@@ -1,9 +1,6 @@
 package pw.brock.mmdn.models;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -13,15 +10,19 @@ import pw.brock.mmdn.util.Log;
  * @author BrockWS
  */
 @SuppressWarnings({"unused", "WeakerAccess", "FieldCanBeLocal"})
-public class Version {
+public class Version implements IDataModel {
 
-    public int specVersion = 0;
+    public int formatVersion = 0;
     public String id = "";
+    public String releaseType = "release";
     public String changelog = "";
     public String side = "universal";
     public List<Relationship> relationships = new ArrayList<>();
     public List<Artifact> artifacts = new ArrayList<>();
     public Map<String, String> hashes = new HashMap<>();
+    public long size;
+    public String filename = "";
+    public String releaseTime = "";
 
     public Version() {
     }
@@ -53,8 +54,18 @@ public class Version {
             return this.id;
         }
 
-        public Object version() {
-            return this.version;
+        @SuppressWarnings("unchecked")
+        public List<String> version() {
+            if (this.version == null)
+                this.version = Collections.emptyList();
+
+            if (this.version instanceof String)
+                return Collections.singletonList((String) this.version);
+            else if (this.version instanceof List) {
+                return (List<String>) this.version;
+            }
+            Log.error("{}", this.version);
+            throw new RuntimeException("Versions should be a string or list but isn't!");
         }
 
         @Override
@@ -89,8 +100,8 @@ public class Version {
         }
     }
 
-    public int specVersion() {
-        return this.specVersion;
+    public int formatVersion() {
+        return this.formatVersion;
     }
 
     public String id() {
@@ -117,11 +128,37 @@ public class Version {
         return this.hashes;
     }
 
+    @Override
+    public void prepareForMinify() {
+        if (this.changelog != null && this.changelog.isEmpty())
+            this.changelog = null;
+        if (this.side != null && (this.side.isEmpty() || this.side.equalsIgnoreCase("universal")))
+            this.side = null;
+        if (this.relationships != null) {
+            if (this.relationships.isEmpty()) {
+                this.relationships = null;
+            } else {
+                this.relationships.forEach(r -> {
+                    if (r.version != null && r.version().isEmpty())
+                        r.version = null;
+                });
+            }
+        }
+        if (this.artifacts != null && this.artifacts.isEmpty())
+            this.artifacts = null;
+        if (this.hashes != null && this.hashes.isEmpty())
+            this.hashes = null;
+        if (this.filename != null && this.filename.isEmpty())
+            this.filename = null;
+        if (this.releaseTime != null && this.releaseTime.isEmpty())
+            this.releaseTime = null;
+    }
+
     public boolean verify() {
         // Probably could just use a json schema instead
         AtomicBoolean valid = new AtomicBoolean(true);
-        if (this.specVersion < 0) {
-            Log.error("specVersion is < 0! {}", this.specVersion);
+        if (this.formatVersion < 0) {
+            Log.error("formatVersion is < 0! {}", this.formatVersion);
             valid.set(false);
         }
         if (this.id.isEmpty()) {
@@ -169,7 +206,7 @@ public class Version {
 
     @Override
     public String toString() {
-        return this.specVersion + " | " + this.id + " | " + this.changelog + " | " + this.side + " | " +
+        return this.formatVersion + " | " + this.id + " | " + this.changelog + " | " + this.side + " | " +
                 this.relationships.stream().map(Object::toString).collect(Collectors.joining(" | ")) + " | " +
                 this.artifacts.stream().map(Object::toString).collect(Collectors.joining(" | ")) + " | " +
                 this.hashes.toString();

@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * @author BrockWS
  */
-public class PackageIndex {
+class PackageIndex {
 
     private int formatVersion;
     private List<Version> versions;
