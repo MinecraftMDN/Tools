@@ -6,4 +6,8 @@ package pw.brock.mmdn.models;
 public interface IDataModel {
 
     void prepareForMinify();
+
+    default void populateDefaults() {
+
+    }
 }

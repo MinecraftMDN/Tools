@@ -79,6 +79,24 @@ public class Downloader {
         return null;
     }
 
+    public static HttpResponse head(GenericUrl url) {
+        String urlString = url.build();
+        Log.trace("Requesting {}", urlString);
+        Preconditions.checkArgument(!urlString.isEmpty(), "URL is empty!");
+        HttpRequestFactory factory = Downloader.getRequestFactory("");
+        try {
+            HttpRequest request = factory.buildHeadRequest(url);
+            HttpResponse response = request.execute();
+            if (response.getHeaders().containsKey("x-cache-status")) {
+                Log.trace("Cache Status: {}", response.getHeaders().get("x-cache-status"));
+            }
+            return response;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public static String getString(GenericUrl url) {
         HttpResponse response = Downloader.get("", url);
         if (response == null)

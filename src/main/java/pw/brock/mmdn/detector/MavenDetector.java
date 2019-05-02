@@ -1,5 +1,7 @@
 package pw.brock.mmdn.detector;
 
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,6 +17,8 @@ import pw.brock.mmdn.models.maven.MavenPom;
 import pw.brock.mmdn.util.Downloader;
 import pw.brock.mmdn.util.Log;
 
+import com.google.api.client.http.HttpHeaders;
+import com.google.api.client.http.HttpResponse;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -31,6 +35,7 @@ public class MavenDetector implements IDetector {
         List<Version> versions = Lists.newArrayList();
         String id = data.get("id");
         String url = data.get("url");
+        List<String> ignoreData = Arrays.asList(data.getOrDefault("ignoreData", "").split(","));
         // com.example:mod
         // com.example.mod:modlib
         String[] split = id.split("[:.]");
@@ -65,11 +70,11 @@ public class MavenDetector implements IDetector {
 
             // Dependencies
             List<MavenPom.Dependency> dependencies = pom.dependencies();
-            if (v instanceof MLVersion && !dependencies.isEmpty()) {
+            if (v instanceof MLVersion && !dependencies.isEmpty() && !ignoreData.contains("dependencies")) {
                 Log.info("Found {} dependencies", dependencies.size());
                 MLVersion mlv = (MLVersion) v;
                 dependencies.forEach(dependency -> {
-                    //Log.info("dependency group {} artifact {} version {} scope {}", dependency.groupId, dependency.artifactId, dependency.version, dependency.scope);
+                    Log.trace("dependency group {} artifact {} version {} scope {}", dependency.groupId, dependency.artifactId, dependency.version, dependency.scope);
                     MLVersion.Library library = new MLVersion.Library();
                     library.id = dependency.groupId + ":" + dependency.artifactId + ":" + dependency.version;
                     library.url = data.get("url"); // We will assume the maven repo we are looking at contains the libraries instead, since there's no way for us to know otherwise.
@@ -79,17 +84,34 @@ public class MavenDetector implements IDetector {
             }
 
             // Artifacts
-            // For now we assume the jar is in the maven. TODO: Check
-            // Hashes
-            String md5 = Downloader.getString(Downloader.buildUrl(urlBase + ".jar.md5"));
-            String sha1 = Downloader.getString(Downloader.buildUrl(urlBase + ".jar.sha1"));
-            if (md5.isEmpty())
-                throw new NullPointerException("MD5 is empty!");
-            if (sha1.isEmpty())
-                throw new NullPointerException("SHA1 is empty!");
-            v.artifacts.add(new Version.Artifact("direct", Downloader.combineUrl(urlBase + ".jar")));
-            v.hashes.put("md5", md5);
-            v.hashes.put("sha1", sha1);
+            if (!ignoreData.contains("artifacts")) {
+                HttpResponse headResponse = Downloader.head(Downloader.buildUrl(urlBase + ".jar"));
+                Preconditions.checkNotNull(headResponse, "Error for HEAD request!");
+                HttpHeaders headers = headResponse.getHeaders();
+                if (!headResponse.isSuccessStatusCode()) {
+                    Log.error("{} for {} is missing {}", s, pack.id(), headResponse.getRequest().getUrl().build());
+                    return;
+                }
+                v.artifacts.add(new Version.Artifact("direct", Downloader.combineUrl(urlBase + ".jar")));
+
+                // Hashes
+                if (!ignoreData.contains("hashes")) {
+                    String md5 = Downloader.getString(Downloader.buildUrl(urlBase + ".jar.md5"));
+                    String sha1 = Downloader.getString(Downloader.buildUrl(urlBase + ".jar.sha1"));
+                    if (md5.isEmpty())
+                        throw new NullPointerException("MD5 is empty!");
+                    if (sha1.isEmpty())
+                        throw new NullPointerException("SHA1 is empty!");
+                    v.hashes.put("md5", md5);
+                    v.hashes.put("sha1", sha1);
+                }
+                if (!ignoreData.contains("size"))
+                    v.size = headers.getContentLength();
+                if (!ignoreData.contains("releaseTime")) {
+                    ZonedDateTime d = ZonedDateTime.parse(headers.getLastModified(), DateTimeFormatter.RFC_1123_DATE_TIME);
+                    v.releaseTime = d.toOffsetDateTime().toString();
+                }
+            }
             versions.add(v);
         });
 

@@ -14,9 +14,9 @@ public class Version implements IDataModel {
 
     public int formatVersion = 0;
     public String id = "";
-    public String releaseType = "release";
+    public String releaseType = "";
     public String changelog = "";
-    public String side = "universal";
+    public String side = "";
     public List<Relationship> relationships = new ArrayList<>();
     public List<Artifact> artifacts = new ArrayList<>();
     public Map<String, String> hashes = new HashMap<>();
@@ -126,6 +126,14 @@ public class Version implements IDataModel {
 
     public Map<String, String> hashes() {
         return this.hashes;
+    }
+
+    @Override
+    public void populateDefaults() {
+        if (this.releaseType == null || this.releaseType.isEmpty())
+            this.releaseType = "release";
+        if (this.side == null || this.side.isEmpty())
+            this.side = "universal";
     }
 
     @Override

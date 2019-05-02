@@ -28,6 +28,7 @@ public class Main {
         Globals.META_DIR = Main.parseArg(args, "metaDir", Globals.META_DIR);
         Globals.PROJECTS = Main.parseArg(args, "projects", Globals.PROJECTS);
         Globals.FRESH = Main.parseArg(args, "fresh", Globals.FRESH);
+        Globals.UPDATE = Globals.FRESH;
         Globals.UPDATE = Main.parseArg(args, "update", Globals.UPDATE);
         Globals.CURSEMETA = Main.parseArg(args, "cursemeta", Globals.CURSEMETA);
         if (Globals.CURSEMETA.endsWith("/"))

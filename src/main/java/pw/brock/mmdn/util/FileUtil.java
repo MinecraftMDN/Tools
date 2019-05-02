@@ -110,4 +110,23 @@ public class FileUtil {
         }
         return false;
     }
+
+    public static boolean delete(String... path){
+        Preconditions.checkNotNull(path);
+        return FileUtil.delete(FileUtil.file(path));
+    }
+
+    public static boolean delete(File path) {
+        Preconditions.checkNotNull(path);
+        try {
+            if (path.isFile())
+                return path.delete();
+            FileUtils.deleteDirectory(path);
+            return true;
+        } catch (IOException e) {
+            Log.error("Failed to delete directory {}", path.getAbsolutePath());
+            e.printStackTrace();
+        }
+        return false;
+    }
 }

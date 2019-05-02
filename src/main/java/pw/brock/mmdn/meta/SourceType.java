@@ -6,5 +6,6 @@ package pw.brock.mmdn.meta;
 public enum SourceType {
     ACTIVE,
     FROZEN,
-    SINGLE_PACKAGE
+    SINGLE_PACKAGE_ACTIVE,
+    SINGLE_PACKAGE_FROZEN
 }

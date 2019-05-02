@@ -18,7 +18,6 @@ import pw.brock.mmdn.util.Log;
 import pw.brock.mmdn.util.Util;
 
 import com.google.common.base.Preconditions;
-import org.apache.commons.io.FileUtils;
 
 /**
  * Version Discoverer will read the package file and discover, merge and save every version it can find.
@@ -89,6 +88,7 @@ public class VersionDiscoverer implements Runnable {
         versions.forEach(version -> {
             Log.trace("Got version info {}", version);
             try {
+                version.populateDefaults();
                 Util.toJsonFile(FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id, version.id + ".json"), version);
             } catch (IOException e) {
                 Log.error("Failed to save json file!");
@@ -100,10 +100,38 @@ public class VersionDiscoverer implements Runnable {
     private void mergeVersions(List<Version> from, List<Version> to) {
         Log.info("Merging versions!");
         Collection<Version> list = Stream.concat(to.stream(), from.stream()).collect(Collectors.toMap(Version::id, Function.identity(), (o1, o2) -> {
-            // TODO: Merge data
-            // Remove any duplicate relationship data and only add new found relationships
-            o2.relationships.removeIf(relationship -> o1.relationships.stream().map(r -> r.id).anyMatch(s -> relationship.id.equalsIgnoreCase(s)));
-            o1.relationships.addAll(o2.relationships);
+            if (o2.releaseType != null && !o2.releaseType.isEmpty())
+                o1.releaseType = o2.releaseType;
+
+            if (o2.changelog != null && !o2.changelog.isEmpty())
+                o1.changelog = o2.changelog;
+
+            if (o2.side != null && !o2.side.isEmpty())
+                o1.side = o2.side;
+
+            if (o2.relationships != null && o2.relationships.size() > 0) {
+                o2.relationships.removeIf(rs -> o1.relationships.stream().map(r -> r.id).anyMatch(s -> rs.id.equalsIgnoreCase(s)));
+                o1.relationships.addAll(o2.relationships);
+            }
+
+            if (o2.artifacts != null && o2.artifacts.size() > 0) {
+                o2.artifacts.removeIf(art -> o1.artifacts.stream().map(r -> r.id).anyMatch(s -> art.id.equalsIgnoreCase(s)));
+                o1.artifacts.addAll(o2.artifacts);
+            }
+
+            if (o2.hashes != null && o2.hashes.size() > 0) {
+                Map<String, String> originalHashes = o1.hashes;
+                o2.hashes.forEach(originalHashes::put);
+            }
+
+            if (o2.releaseTime != null && !o2.releaseTime.isEmpty())
+                o1.releaseTime = o2.releaseTime;
+
+            if (o2.filename != null && !o2.filename.isEmpty())
+                o1.filename = o2.filename;
+
+            if (o2.size > 0)
+                o1.size = o2.size;
             return o1;
         })).values();
         to.clear();
