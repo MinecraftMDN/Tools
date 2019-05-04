@@ -208,7 +208,7 @@ public class MetaGenerator implements Runnable {
             }
         });
         try {
-            Util.toJsonFile(indexFile, index);
+            Util.toJsonFile(indexFile, index, true);
         } catch (IOException e) {
             Log.error("Failed to save index as json {}", indexFile.getAbsolutePath());
             e.printStackTrace();
@@ -264,7 +264,7 @@ public class MetaGenerator implements Runnable {
             }
         });
         try {
-            Util.toJsonFile(indexFile, index);
+            Util.toJsonFile(indexFile, index, true);
         } catch (IOException e) {
             Log.error("Failed to save index as json {}", indexFile.getAbsolutePath());
             e.printStackTrace();
