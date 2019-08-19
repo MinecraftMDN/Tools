@@ -28,13 +28,15 @@ public class Globals {
     // *************************************
     // Fabric Meta
     // *************************************
-    public static String FABIRC_META = "https://meta.fabricmc.net/v1";
-    public static String FABRIC_YARN_ID = "net.fabricmc.yarn";
+    public static String FABIRC_META = "https://meta.fabricmc.net/v2";
     public static String FABRIC_LOADER_ID = "net.fabricmc.loader";
+    public static String FABRIC_YARN_ID = "net.fabricmc.yarn";
+    public static String FABRIC_INTERMEDIARY_ID = "net.fabricmc.intermediary";
 
     // *************************************
     // Misc
     // *************************************
+    public static String CACHE = "cache";
     public static String PROJECTS = "";
     // Forgot about existing versions
     public static boolean FRESH = false;

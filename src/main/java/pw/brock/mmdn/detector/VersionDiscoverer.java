@@ -14,8 +14,8 @@ import pw.brock.mmdn.models.MLVersion;
 import pw.brock.mmdn.models.UpstreamPackage;
 import pw.brock.mmdn.models.Version;
 import pw.brock.mmdn.util.FileUtil;
+import pw.brock.mmdn.util.JsonUtil;
 import pw.brock.mmdn.util.Log;
-import pw.brock.mmdn.util.Util;
 
 import com.google.common.base.Preconditions;
 
@@ -38,23 +38,23 @@ public class VersionDiscoverer implements Runnable {
         Preconditions.checkArgument(FileUtil.isDir(Globals.UPSTREAM_DIR), "Upstream dir does not exist! " + Globals.UPSTREAM_DIR);
         UpstreamPackage pack;
         try {
-            pack = Util.fromJsonFile(FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id, "package.json"), UpstreamPackage.class);
+            pack = JsonUtil.fromJsonFile(FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id, "package.json"), UpstreamPackage.class);
         } catch (IOException e) {
             Log.error("Failed to read package file!");
             e.printStackTrace();
             return;
         }
         Preconditions.checkNotNull(pack, "Failed to read package file!");
-        Preconditions.checkArgument(pack.formatVersion() == 0, "Unsupported spec version " + pack.formatVersion());
+        Preconditions.checkArgument(pack.formatVersion == 0, "Unsupported spec version " + pack.formatVersion);
         Preconditions.checkArgument(!pack.detectors().isEmpty(), "Package " + this.id + " does not have any detectors!");
 
-        List<Version> versions = Globals.FRESH ? new ArrayList<>() : this.readExisting(pack.type());
+        List<Version> versions = Globals.FRESH ? new ArrayList<>() : this.readExisting(pack.type);
         Log.info("{} existing versions", versions.size());
 
         pack.detectors().forEach(detect -> {
             String type = detect.type().toLowerCase();
             Map<String, String> data = detect.data();
-            Log.trace("Found {} detectors", type);
+            Log.trace("Found {} detector", type);
             IDetector detector = DetectorRegistry.getDetector(type);
             if (detector == null)
                 throw new RuntimeException("Unknown detector " + type);
@@ -89,7 +89,7 @@ public class VersionDiscoverer implements Runnable {
             Log.trace("Got version info {}", version);
             try {
                 version.populateDefaults();
-                Util.toJsonFile(FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id, version.id + ".json"), version);
+                JsonUtil.toJsonFile(FileUtil.file(Globals.UPSTREAM_DIR, "active", this.id, version.id + ".json"), version);
             } catch (IOException e) {
                 Log.error("Failed to save json file!");
                 e.printStackTrace();
@@ -99,7 +99,7 @@ public class VersionDiscoverer implements Runnable {
 
     private void mergeVersions(List<Version> from, List<Version> to) {
         Log.info("Merging versions!");
-        Collection<Version> list = Stream.concat(to.stream(), from.stream()).collect(Collectors.toMap(Version::id, Function.identity(), (o1, o2) -> {
+        Collection<Version> list = Stream.concat(to.stream(), from.stream()).collect(Collectors.toMap(version -> version.id, Function.identity(), (o1, o2) -> {
             if (o2.releaseType != null && !o2.releaseType.isEmpty())
                 o1.releaseType = o2.releaseType;
 
@@ -132,6 +132,19 @@ public class VersionDiscoverer implements Runnable {
 
             if (o2.size > 0)
                 o1.size = o2.size;
+
+            if (o1 instanceof MLVersion && o2 instanceof MLVersion) {
+                MLVersion v1 = (MLVersion) o1;
+                MLVersion v2 = (MLVersion) o2;
+                if (v1.libraries.isEmpty() && !v2.libraries.isEmpty())
+                    v1.libraries.addAll(v2.libraries);
+
+                if (v1.mainClass.isEmpty() && !v2.mainClass.isEmpty())
+                    v1.mainClass.putAll(v2.mainClass);
+
+                if (v1.tweakers.isEmpty() && !v2.tweakers.isEmpty())
+                    v1.tweakers.putAll(v2.tweakers);
+            }
             return o1;
         })).values();
         to.clear();
@@ -146,7 +159,7 @@ public class VersionDiscoverer implements Runnable {
         return files.stream().map(file -> {
             try {
                 Class<? extends Version> clazz = type.equalsIgnoreCase("modloader") ? MLVersion.class : Version.class;
-                return Util.fromJsonFile(file, clazz);
+                return JsonUtil.fromJsonFile(file, clazz);
             } catch (Exception e) {
                 Log.info("Failed to read existing version file! {}", file.getAbsolutePath());
                 e.printStackTrace();

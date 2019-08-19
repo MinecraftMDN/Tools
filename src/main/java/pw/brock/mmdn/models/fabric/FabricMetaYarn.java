@@ -5,7 +5,7 @@ import com.google.api.client.util.Key;
 /**
  * @author BrockWS
  */
-public class FabricMetaMapping {
+public class FabricMetaYarn {
     @Key
     public String gameVersion;
     @Key

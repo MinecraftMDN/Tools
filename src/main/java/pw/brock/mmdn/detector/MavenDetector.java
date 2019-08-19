@@ -2,7 +2,6 @@ package pw.brock.mmdn.detector;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +15,7 @@ import pw.brock.mmdn.models.maven.MavenMeta;
 import pw.brock.mmdn.models.maven.MavenPom;
 import pw.brock.mmdn.util.Downloader;
 import pw.brock.mmdn.util.Log;
+import pw.brock.mmdn.util.MavenUtil;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpResponse;
@@ -36,16 +36,7 @@ public class MavenDetector implements IDetector {
         String id = data.get("id");
         String url = data.get("url");
         List<String> ignoreData = Arrays.asList(data.getOrDefault("ignoreData", "").split(","));
-        // com.example:mod
-        // com.example.mod:modlib
-        String[] split = id.split("[:.]");
-        if (split.length < 2)
-            throw new RuntimeException(id + " is not a valid id!");
-        List<String> urlParts = new ArrayList<>();
-        urlParts.add(url);
-        urlParts.addAll(Arrays.asList(split));
-        urlParts.add("maven-metadata.xml");
-        MavenMeta meta = Downloader.getXml(Downloader.buildUrl(url, split[0], split[1], split[2], "maven-metadata.xml"), MavenMeta.class);
+        MavenMeta meta = Downloader.getXml(Downloader.buildUrl(url, MavenUtil.toMavenPathBase(id), "maven-metadata.xml"), MavenMeta.class);
         List<String> newVersions = meta.versions()
                 .stream()
                 .filter(s -> updateExisting || !existingVersions.contains(s))
@@ -54,18 +45,14 @@ public class MavenDetector implements IDetector {
 
         newVersions.forEach(s -> {
             Log.debug("Need to get information of {}", s);
-            urlParts.clear();
-            urlParts.add(url);
-            urlParts.addAll(Arrays.asList(split));
-            urlParts.add(s);
-            urlParts.add(split[split.length - 1] + "-" + s);
-            String urlBase = Downloader.combineUrl(urlParts.toArray(new String[0]));
+            // <groupId>:<artifactId>[:<classifier>]:<version>[@extension]
+            String urlBase = MavenUtil.toMavenUrl(url, id + ":" + s + "@pom").replace(".pom", "");
             MavenPom pom = Downloader.getXml(Downloader.buildUrl(urlBase + ".pom"), MavenPom.class);
             if (pom == null) {
                 Log.error("Pom is null!");
                 return;
             }
-            Version v = pack.type().equalsIgnoreCase("modloader") ? new MLVersion() : new Version();
+            Version v = pack.type.equalsIgnoreCase("modloader") ? new MLVersion() : new Version();
             v.id = pom.version;
 
             // Dependencies
@@ -89,7 +76,7 @@ public class MavenDetector implements IDetector {
                 Preconditions.checkNotNull(headResponse, "Error for HEAD request!");
                 HttpHeaders headers = headResponse.getHeaders();
                 if (!headResponse.isSuccessStatusCode()) {
-                    Log.error("{} for {} is missing {}", s, pack.id(), headResponse.getRequest().getUrl().build());
+                    Log.error("{} for {} is missing {}", s, pack.id, headResponse.getRequest().getUrl().build());
                     return;
                 }
                 v.artifacts.add(new Version.Artifact("direct", Downloader.combineUrl(urlBase + ".jar")));

@@ -16,24 +16,7 @@ import com.google.gson.annotations.SerializedName;
 public class UpstreamPackage extends Package {
 
     @SerializedName("@detectors")
-    private List<Detector> detectors = Collections.emptyList();
-
-    public class Detector {
-        private String type;
-        private Map<String, String> data = new HashMap<>();
-
-        public String type() {
-            return this.type;
-        }
-
-        public Map<String, String> data() {
-            return this.data;
-        }
-    }
-
-    public List<Detector> detectors() {
-        return this.detectors;
-    }
+    public List<Detector> detectors = Collections.emptyList();
 
     @Override
     public boolean verify() {
@@ -55,5 +38,22 @@ public class UpstreamPackage extends Package {
             });
         }
         return valid.get() && super.verify();
+    }
+
+    public List<Detector> detectors() {
+        return this.detectors;
+    }
+
+    public static class Detector {
+        public String type;
+        public Map<String, String> data = new HashMap<>();
+
+        public String type() {
+            return this.type;
+        }
+
+        public Map<String, String> data() {
+            return this.data;
+        }
     }
 }

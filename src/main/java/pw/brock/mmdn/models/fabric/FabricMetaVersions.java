@@ -10,7 +10,9 @@ import com.google.api.client.util.Key;
  */
 public class FabricMetaVersions {
     @Key
-    public List<FabricMetaMapping> mappings = new ArrayList<>();
-    @Key
     public List<FabricMetaLoader> loader = new ArrayList<>();
+    @Key
+    public List<FabricMetaYarn> mappings = new ArrayList<>();
+    @Key
+    public List<FabricMetaYarn> intermedairy = new ArrayList<>();
 }

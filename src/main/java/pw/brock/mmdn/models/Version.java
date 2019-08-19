@@ -2,7 +2,6 @@ package pw.brock.mmdn.models;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import pw.brock.mmdn.util.Log;
 
@@ -19,123 +18,17 @@ public class Version implements IDataModel {
     public String side = "";
     public List<Relationship> relationships = new ArrayList<>();
     public List<Artifact> artifacts = new ArrayList<>();
+    public SidedOverride client = new SidedOverride();
+    public SidedOverride server = new SidedOverride();
     public Map<String, String> hashes = new HashMap<>();
-    public long size;
+    public long size = -1;
     public String filename = "";
     public String releaseTime = "";
 
     public Version() {
     }
 
-    public static class Relationship {
-        public String type = "";
-        public String id = "";
-        public Object version = "*";
-
-        public Relationship() {
-        }
-
-        public Relationship(String type, String id) {
-            this.type = type;
-            this.id = id;
-        }
-
-        public Relationship(String type, String id, Object version) {
-            this.type = type;
-            this.id = id;
-            this.version = version;
-        }
-
-        public String type() {
-            return this.type;
-        }
-
-        public String id() {
-            return this.id;
-        }
-
-        @SuppressWarnings("unchecked")
-        public List<String> version() {
-            if (this.version == null)
-                this.version = Collections.emptyList();
-
-            if (this.version instanceof String)
-                return Collections.singletonList((String) this.version);
-            else if (this.version instanceof List) {
-                return (List<String>) this.version;
-            }
-            Log.error("{}", this.version);
-            throw new RuntimeException("Versions should be a string or list but isn't!");
-        }
-
-        @Override
-        public String toString() {
-            return this.type + " | " + this.id + " | " + this.version;
-        }
-    }
-
-    public static class Artifact {
-        public String type = "";
-        public String id = "";
-
-        public Artifact() {
-        }
-
-        public Artifact(String type, String id) {
-            this.type = type;
-            this.id = id;
-        }
-
-        public String type() {
-            return this.type;
-        }
-
-        public String id() {
-            return this.id;
-        }
-
-        @Override
-        public String toString() {
-            return this.type + " | " + this.id;
-        }
-    }
-
-    public int formatVersion() {
-        return this.formatVersion;
-    }
-
-    public String id() {
-        return this.id;
-    }
-
-    public String changelog() {
-        return this.changelog;
-    }
-
-    public String side() {
-        return this.side;
-    }
-
-    public List<Relationship> relationships() {
-        return this.relationships;
-    }
-
-    public List<Artifact> artifacts() {
-        return this.artifacts;
-    }
-
-    public Map<String, String> hashes() {
-        return this.hashes;
-    }
-
-    @Override
-    public void populateDefaults() {
-        if (this.releaseType == null || this.releaseType.isEmpty())
-            this.releaseType = "release";
-        if (this.side == null || this.side.isEmpty())
-            this.side = "universal";
-    }
-
+    // TODO: Remove
     @Override
     public void prepareForMinify() {
         if (this.changelog != null && this.changelog.isEmpty())
@@ -162,6 +55,21 @@ public class Version implements IDataModel {
             this.releaseTime = null;
     }
 
+    // TODO: Remove
+    @Override
+    public void populateDefaults() {
+        if (this.releaseType == null || this.releaseType.isEmpty())
+            this.releaseType = "release";
+        if (this.side == null || this.side.isEmpty())
+            this.side = "universal";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return (obj instanceof Version) && this.id.equals(((Version) obj).id);
+    }
+
+    // TODO: Remove
     public boolean verify() {
         // Probably could just use a json schema instead
         AtomicBoolean valid = new AtomicBoolean(true);
@@ -212,11 +120,80 @@ public class Version implements IDataModel {
         return valid.get();
     }
 
-    @Override
-    public String toString() {
-        return this.formatVersion + " | " + this.id + " | " + this.changelog + " | " + this.side + " | " +
-                this.relationships.stream().map(Object::toString).collect(Collectors.joining(" | ")) + " | " +
-                this.artifacts.stream().map(Object::toString).collect(Collectors.joining(" | ")) + " | " +
-                this.hashes.toString();
+    public static class Relationship {
+        public String type = "";
+        public String id = "";
+        public Object version = "*";
+        public String side = "universal";
+
+        public Relationship() {
+        }
+
+        @SuppressWarnings("unchecked")
+        public List<String> version() {
+            if (this.version == null)
+                this.version = Collections.emptyList();
+
+            if (this.version instanceof String)
+                return Collections.singletonList((String) this.version);
+            else if (this.version instanceof List) {
+                return (List<String>) this.version;
+            }
+            Log.error("{}", this.version);
+            throw new RuntimeException("Versions should be a string or list but isn't!");
+        }
+    }
+
+    public static class Artifact {
+        public String type = "";
+        public String id = "";
+        public String side = "universal";
+
+        public Artifact() {
+        }
+
+        public Artifact(String type, String id) {
+            this(type, id, "universal");
+        }
+
+        public Artifact(String type, String id, String side) {
+            this.type = type;
+            this.id = id;
+            this.side = side;
+        }
+
+        public String type() {
+            return this.type;
+        }
+
+        public String id() {
+            return this.id;
+        }
+
+        public String side() {
+            return this.side;
+        }
+    }
+
+    public static class SidedOverride {
+        public Map<String, String> hashes = new HashMap<>();
+        public long size = -1;
+        public String filename;
+    }
+
+    public static class Library {
+        public String type = "jar";
+        public String id;
+        public String url;
+        public String side = "universal";
+        public long size = -1;
+        public Map<String, String> hashes = new HashMap<>();
+
+        public Library() {
+        }
+
+        public String id() {
+            return this.id;
+        }
     }
 }

@@ -1,15 +1,24 @@
 package pw.brock.mmdn.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.io.*;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.ZipFile;
+
+import pw.brock.mmdn.models.IDataModel;
+import pw.brock.mmdn.models.Version;
+import pw.brock.mmdn.util.gson.SidedOverrideSerializer;
+import pw.brock.mmdn.util.gson.VersionSerializer;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.AbstractFileFilter;
 import org.apache.commons.io.filefilter.NotFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -17,19 +26,29 @@ import org.apache.commons.io.filefilter.TrueFileFilter;
 /**
  * @author BrockWS
  */
-@SuppressWarnings({"unused", "WeakerAccess"})
+@SuppressWarnings({"unused", "WeakerAccess", "UnusedReturnValue"})
 public class FileUtil {
 
-    public static File file(String... s) {
-        return FileUtils.getFile(s);
+    public static File file(Object... o) {
+        return FileUtils.getFile(Arrays.stream(o).map(Object::toString).toArray(String[]::new));
     }
 
-    public static boolean isFile(String path) {
+    public static boolean isFile(Object... path) {
         return FileUtil.file(path).isFile();
     }
 
-    public static boolean isDir(String path) {
+    public static boolean isDir(Object... path) {
         return FileUtil.file(path).isDirectory();
+    }
+
+    public static File removeExtension(Object... s) {
+        return FileUtil.removeExtension(FileUtil.file(s));
+    }
+
+    public static File removeExtension(File file) {
+        String dir = file.getParent();
+        String name = file.getName();
+        return FileUtil.file(dir, name.substring(0, name.lastIndexOf(".")));
     }
 
     public static List<File> getFiles(String path) {
@@ -111,7 +130,7 @@ public class FileUtil {
         return false;
     }
 
-    public static boolean delete(String... path){
+    public static boolean delete(Object... path) {
         Preconditions.checkNotNull(path);
         return FileUtil.delete(FileUtil.file(path));
     }
@@ -129,4 +148,43 @@ public class FileUtil {
         }
         return false;
     }
+
+    public static boolean unzipFile(Object... file) {
+        return FileUtil.unzipFile(FileUtil.file(file));
+    }
+
+    public static boolean unzipFile(File file) {
+        Objects.requireNonNull(file);
+        if (!file.isFile())
+            throw new IllegalArgumentException(file.getAbsolutePath() + " is not a file!");
+        File dest = FileUtil.removeExtension(file);
+        if (dest.exists())
+            throw new RuntimeException("Invalid Path! " + dest.getAbsolutePath());
+        try {
+            ZipFile zipFile = new ZipFile(file);
+            zipFile.stream().forEach(entry -> {
+                try {
+                    File destEntry = new File(dest, entry.getName());
+                    if (entry.isDirectory()) {
+                        destEntry.mkdirs();
+                    } else {
+                        destEntry.getParentFile().mkdirs();
+                        InputStream in = zipFile.getInputStream(entry);
+                        OutputStream out = new FileOutputStream(destEntry);
+                        IOUtils.copy(in, out);
+                        in.close();
+                        out.close();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            zipFile.close();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 }

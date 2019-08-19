@@ -1,9 +1,8 @@
 package pw.brock.mmdn.models;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import pw.brock.mmdn.util.Log;
@@ -16,46 +15,28 @@ import pw.brock.mmdn.util.Log;
 @SuppressWarnings({"FieldCanBeLocal", "unused", "Duplicates", "WeakerAccess"})
 public class Package implements IDataModel {
 
-    private int formatVersion = -1;
-    private String type = "mod";
-    private String id = "";
-    private String name = "";
-    private String description = "";
-    private Object licenses = Collections.emptyList();
-    private List<String> authors = Collections.emptyList();
-    private List<ProjectLink> projectLinks = Collections.emptyList();
+    public int formatVersion = 0;
+    public String type = "mod";
+    public String id = "";
+    public String name = "";
+    public String description = "";
+    public String icon = "";
+    public Object licenses = new ArrayList<>();
+    public List<String> authors = new ArrayList<>();
+    public List<ProjectLink> projectLinks = new ArrayList<>();
 
-    public class ProjectLink {
-        private String type;
-        private String url;
-
-        public String type() {
-            return this.type;
-        }
-
-        public String url() {
-            return this.url;
-        }
-    }
-
-    public int formatVersion() {
-        return this.formatVersion;
-    }
-
-    public String type() {
-        return this.type;
-    }
-
-    public String id() {
-        return this.id;
-    }
-
-    public String name() {
-        return this.name;
-    }
-
-    public String description() {
-        return this.description;
+    @Override
+    public void prepareForMinify() {
+        if (this.name != null && this.name.isEmpty())
+            this.name = null;
+        if (this.description != null && this.description.isEmpty())
+            this.description = null;
+        if (this.licenses != null && this.licenses().isEmpty())
+            this.licenses = null;
+        if (this.authors != null && this.authors.isEmpty())
+            this.authors = null;
+        if (this.projectLinks != null && this.projectLinks.isEmpty())
+            this.projectLinks = null;
     }
 
     @SuppressWarnings("unchecked")
@@ -70,28 +51,6 @@ public class Package implements IDataModel {
         }
         Log.error("{}", this.licenses);
         throw new RuntimeException("Licenses should be a string or list but isn't!");
-    }
-
-    public List<String> authors() {
-        return this.authors;
-    }
-
-    public List<ProjectLink> projectLinks() {
-        return this.projectLinks;
-    }
-
-    @Override
-    public void prepareForMinify() {
-        if (this.name != null && this.name.isEmpty())
-            this.name = null;
-        if (this.description != null && this.description.isEmpty())
-            this.description = null;
-        if (this.licenses != null && this.licenses().isEmpty())
-            this.licenses = null;
-        if (this.authors != null && this.authors.isEmpty())
-            this.authors = null;
-        if (this.projectLinks != null && this.projectLinks.isEmpty())
-            this.projectLinks = null;
     }
 
     public boolean verify() {
@@ -129,5 +88,10 @@ public class Package implements IDataModel {
         }
 
         return valid.get();
+    }
+
+    public static class ProjectLink {
+        public String type;
+        public String url;
     }
 }

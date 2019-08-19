@@ -23,23 +23,6 @@ public class FabricLoader extends GenericJson {
     @Key("launchwrapper")
     public LaunchWrapper launchwrapper;
 
-    public static class Library {
-        @Key
-        public String name;
-        @Key
-        public String url = "";
-    }
-
-    public static class LaunchWrapper {
-        @Key
-        public Map<String, List<String>> tweakers = new HashMap<>();
-
-        @Override
-        public String toString() {
-            return tweakers.toString();
-        }
-    }
-
     @SuppressWarnings("unchecked")
     public Map<String, String> mainClass() {
         if (this.mainClass == null)
@@ -56,5 +39,22 @@ public class FabricLoader extends GenericJson {
         if (this.launchwrapper == null || this.launchwrapper.tweakers == null)
             return Collections.emptyMap();
         return this.launchwrapper.tweakers;
+    }
+
+    public static class Library {
+        @Key
+        public String name;
+        @Key
+        public String url = "";
+    }
+
+    public static class LaunchWrapper {
+        @Key
+        public Map<String, List<String>> tweakers = new HashMap<>();
+
+        @Override
+        public String toString() {
+            return tweakers.toString();
+        }
     }
 }

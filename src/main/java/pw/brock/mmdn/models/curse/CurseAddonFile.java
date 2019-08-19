@@ -11,9 +11,9 @@ public class CurseAddonFile {
     @Key
     public int id;
     @Key
-    public String fileName;
+    public String displayName;
     @Key
-    public String fileNameOnDisk;
+    public String fileName;
     @Key
     public String fileDate;
     @Key
@@ -27,9 +27,17 @@ public class CurseAddonFile {
     @Key
     public boolean isAlternate;
     @Key
+    public int alternateFileId;
+    @Key
     public boolean isAvailable;
     @Key
     public long packageFingerprint;
     @Key
     public List<String> gameVersion;
+    @Key
+    public int serverPackFileId;
+    @Key
+    public boolean hasInstallScript;
+    @Key
+    public String gameVersionDateReleased;
 }

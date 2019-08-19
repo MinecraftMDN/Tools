@@ -1,6 +1,9 @@
 package pw.brock.mmdn.util;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -10,6 +13,7 @@ import pw.brock.mmdn.Globals;
 
 import com.google.api.client.http.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.Preconditions;
 import com.google.api.client.xml.XmlNamespaceDictionary;
@@ -79,6 +83,37 @@ public class Downloader {
         return null;
     }
 
+    public static HttpResponse post(String factoryName, GenericUrl url, HttpContent content) {
+        String urlString = url.build();
+        Log.trace("Requesting {}", urlString);
+        Preconditions.checkArgument(!urlString.isEmpty(), "URL is empty!");
+        HttpRequestFactory factory = Downloader.getRequestFactory(factoryName);
+        try {
+            HttpRequest request = factory.buildPostRequest(url, content);
+            HttpResponse response = request.execute();
+            if (response.getHeaders().containsKey("x-cache-status")) {
+                Log.trace("Cache Status: {}", response.getHeaders().get("x-cache-status"));
+            }
+            return response;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static <T> T post(String factoryName, GenericUrl url, HttpContent content, Class<T> clazz) {
+        HttpResponse response = Downloader.post(factoryName, url, content);
+        if (response == null)
+            throw new NullPointerException("Failed to get HTTP response: " + factoryName);
+        try {
+            return response.parseAs(clazz);
+        } catch (IOException e) {
+            Log.error("Failed to request url as " + factoryName);
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public static HttpResponse head(GenericUrl url) {
         String urlString = url.build();
         Log.trace("Requesting {}", urlString);
@@ -109,6 +144,22 @@ public class Downloader {
         return "";
     }
 
+    public static boolean getFile(GenericUrl url, File saveAs) {
+        HttpResponse response = Downloader.get("", url);
+        if (response == null)
+            throw new NullPointerException("Failed to get HTTP response: " + url.build());
+
+        if (!saveAs.getParentFile().exists() && !saveAs.getParentFile().mkdirs())
+            throw new RuntimeException("Failed to create directory " + saveAs.getParent());
+
+        try (OutputStream stream = new FileOutputStream(saveAs)) {
+            response.download(stream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return saveAs.exists();
+    }
+
     public static HttpResponse getGson(GenericUrl url) {
         return Downloader.get("gson", url);
     }
@@ -123,6 +174,20 @@ public class Downloader {
 
     public static <T> T getXml(GenericUrl url, Class<T> clazz) {
         return Downloader.get("xml", url, clazz);
+    }
+
+    public static <T> T postGson(GenericUrl url, Object data, Class<T> clazz) {
+        HttpContent content;
+        if (data instanceof String)
+            content = ByteArrayContent.fromString("application/json", (String) data);
+        else
+            content = new JsonHttpContent(GsonFactory.getDefaultInstance(), data);
+        return Downloader.post("gson", url, content, clazz);
+    }
+
+    public static File getFileMaven(String url, String id, String dir) {
+        File path = new File(dir, MavenUtil.toMavenPath(id));
+        return Downloader.getFile(Downloader.buildUrl(MavenUtil.toMavenUrl(url, id)), path) ? path : null;
     }
 
     public static String combineUrl(String... paths) {

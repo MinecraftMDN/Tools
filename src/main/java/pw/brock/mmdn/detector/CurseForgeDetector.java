@@ -1,12 +1,12 @@
 package pw.brock.mmdn.detector;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import pw.brock.mmdn.Globals;
 import pw.brock.mmdn.api.IDetector;
 import pw.brock.mmdn.models.Package;
 import pw.brock.mmdn.models.Version;
@@ -29,19 +29,29 @@ public class CurseForgeDetector implements IDetector {
         String id = data.get("id");
         // The default regex will match 3 or 4 digit version string followed by .jar. Capture group will only match the 3-4 digit part
         String regex = data.getOrDefault("regex", "((?:\\d+\\.){2,3}\\d+).jar");
+        List<String> ignoreData = Arrays.asList(data.getOrDefault("ignoreData", "").split(","));
         Log.trace("ID: {} | Regex: {}", id, regex);
         ArrayList<CurseAddonFile> files = Downloader.getGson(
-                Downloader.buildUrl(Globals.CURSEMETA, "api/v3/direct/addon", id, "files"),
+                Downloader.buildUrl("https://addons-ecs.forgesvc.net/api/v2/addon", id, "files"),
+                //        Downloader.buildUrl(Globals.CURSEMETA, "api/v3/direct/addon", id, "files"),
                 CurseAddonFiles.class);
         if (files.isEmpty()) {
-            Log.error("No files found for {} with id of ", pack.id(), id);
+            Log.error("No files found for {} with id of ", pack.id, id);
             return versions;
         }
         Log.info("Found {} files on curseforge for {}", files.size(), id);
         Pattern pattern = Pattern.compile(regex);
+        //Pattern mcSnapshotPattern = Pattern.compile("\\d\\dw\\d\\d?\\w?");
 
         files.forEach(cf -> {
-            String fileName = cf.fileNameOnDisk;
+            String fileName = cf.fileName;
+            if (fileName == null || fileName.isEmpty())
+                fileName = cf.fileName;
+            if (fileName == null || fileName.isEmpty()) {
+                Log.error("fileName is empty!");
+                Log.error("{}", cf);
+                throw new RuntimeException("fileName is empty!");
+            }
             Log.debug("Checking {} from Curseforge", fileName);
             Matcher matcher = pattern.matcher(fileName);
             if (!matcher.find()) {
@@ -55,8 +65,17 @@ public class CurseForgeDetector implements IDetector {
             Version v = new Version();
             v.id = version;
             // Relationships
+            // FIXME Version may support multiple versions
+            // FIXME Snapshot versions...
             Object mcVersion = cf.gameVersion.size() == 1 ? cf.gameVersion.get(0) : cf.gameVersion;
-            v.relationships.add(new Version.Relationship("required", "minecraft", mcVersion));
+            // FIXME: Make sure mcVersion is valid version
+            if (!ignoreData.contains("relationships")) {
+                Version.Relationship relationship = new Version.Relationship();
+                relationship.type = "required";
+                relationship.id = "com.mojang.minecraft";
+                relationship.version = mcVersion;
+                v.relationships.add(relationship);
+            }
             // TODO: CurseID to package id
             // Artifacts
             v.artifacts.add(new Version.Artifact("curseforge", String.valueOf(cf.id)));
